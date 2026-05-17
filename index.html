@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <!-- Primary SEO -->
+    <title>Well Made by Johnyvino — A Personal Curation of Well-Designed Objects</title>
+    <meta name="description" content="A handpicked collection of beautifully designed objects — watches, audio gear, vehicles, tools, books, furniture, and more — curated by Johnyvino.">
+    <meta name="keywords" content="design curation, product design, well-designed objects, watches, audio, speakers, headphones, cameras, vehicles, tools, knives, stationery, pens, furniture, lighting, books, johnyvino, well made, industrial design, minimal design, premium design">
+    <meta name="author" content="Johnyvino">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://wellmade.johnyvino.com/">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Theme & app metadata -->
+    <meta name="theme-color" content="#FFFFFF">
+    <meta name="color-scheme" content="light">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Well Made">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Well Made by Johnyvino">
+    <meta property="og:url" content="https://wellmade.johnyvino.com/">
+    <meta property="og:title" content="Well Made by Johnyvino">
+    <meta property="og:description" content="A personal curation of beautifully designed objects — watches, audio, vehicles, tools, and more.">
+    <meta property="og:image" content="https://wellmade.johnyvino.com/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Well Made by Johnyvino — a personal curation of well-designed objects">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://wellmade.johnyvino.com/">
+    <meta name="twitter:title" content="Well Made by Johnyvino">
+    <meta name="twitter:description" content="A personal curation of beautifully designed objects.">
+    <meta name="twitter:image" content="https://wellmade.johnyvino.com/og-image.png">
+    <meta name="twitter:image:alt" content="Well Made by Johnyvino">
+    <meta name="twitter:creator" content="@johnyvino">
+    <meta name="twitter:site" content="@johnyvino">
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Well Made by Johnyvino",
+        "alternateName": "Well Made",
+        "url": "https://wellmade.johnyvino.com/",
+        "description": "A personal curation of beautifully designed objects.",
+        "inLanguage": "en-US",
+        "author": {
+            "@type": "Person",
+            "name": "Johnyvino",
+            "url": "https://johnyvino.com",
+            "sameAs": [
+                "https://johnyvino.com",
+                "https://twitter.com/johnyvino"
+            ]
+        },
+        "publisher": {
+            "@type": "Person",
+            "name": "Johnyvino",
+            "url": "https://johnyvino.com"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Well Made by Johnyvino",
+        "url": "https://wellmade.johnyvino.com/",
+        "description": "A handpicked grid of beautifully designed objects across tech, audio, watches, tools, stationery, furniture, lighting, carry, books, vehicles, and objects.",
+        "isPartOf": {
+            "@type": "WebSite",
+            "name": "Well Made by Johnyvino",
+            "url": "https://wellmade.johnyvino.com/"
+        },
+        "creator": {
+            "@type": "Person",
+            "name": "Johnyvino",
+            "url": "https://johnyvino.com"
+        }
+    }
+    </script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <h1 class="site-title">Well Made</h1>
+        <p class="site-subtitle">Curated by <a href="https://johnyvino.com" target="_blank" rel="noopener noreferrer" class="wordmark-link">Johnyvino</a></p>
+    </header>
+
+    <nav class="filter-bar" aria-label="Categories">
+        <div class="filter-list" id="filterList"></div>
+        <span class="product-count" id="productCount"></span>
+    </nav>
+
+    <main class="grid" id="grid"></main>
+
+    <footer class="site-footer">
+        <div class="footer-actions">
+            <button type="button" class="footer-link" id="submitButton">Submit a design</button>
+            <a href="https://johnyvino.com" target="_blank" rel="noopener noreferrer">Johnyvino.com</a>
+        </div>
+        <small class="footer-copy">© 2026 Johnyvino · All rights reserved · Product images belong to their respective brands</small>
+    </footer>
+
+    <!-- Submit modal -->
+    <div class="modal" id="submitModal" aria-hidden="true">
+        <div class="modal-backdrop" data-close></div>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="submitTitle">
+            <button type="button" class="modal-close" data-close aria-label="Close">×</button>
+            <h2 id="submitTitle" class="modal-title">Submit a design</h2>
+            <p class="modal-subtitle">Found something beautifully designed? Send it in.</p>
+            <form id="submitForm" class="submit-form" novalidate>
+                <label>
+                    <span>Product name *</span>
+                    <input type="text" name="name" required autocomplete="off">
+                </label>
+                <label>
+                    <span>Brand *</span>
+                    <input type="text" name="brand" required autocomplete="off">
+                </label>
+                <label>
+                    <span>Product link *</span>
+                    <input type="url" name="link" required placeholder="https://" autocomplete="off">
+                </label>
+                <label>
+                    <span>Category</span>
+                    <select name="category">
+                        <option value="">— pick one —</option>
+                        <option value="tech">tech</option>
+                        <option value="audio">audio</option>
+                        <option value="watches">watches</option>
+                        <option value="tools">tools</option>
+                        <option value="stationery">stationery</option>
+                        <option value="furniture">furniture</option>
+                        <option value="carry">carry</option>
+                        <option value="books">books</option>
+                        <option value="vehicles">vehicles</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Why is it well designed?</span>
+                    <textarea name="why" rows="3"></textarea>
+                </label>
+                <label>
+                    <span>Your email (so I can reply)</span>
+                    <input type="email" name="from" autocomplete="email">
+                </label>
+                <button type="submit" class="submit-btn">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="items.js"></script>
+    <script src="script.js" defer></script>
+</body>
+</html>
