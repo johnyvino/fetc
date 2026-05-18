@@ -116,7 +116,13 @@ button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer
     padding: var(--gutter) var(--side-pad) 64px;
 }
 
-.card        { display: block; color: var(--ink); }
+.card        {
+    display: block;
+    color: var(--ink);
+    content-visibility: auto;
+    contain-intrinsic-size: auto 360px;
+}
+.card[hidden] { display: none; }
 .card.large  { grid-column: span 2; }
 .card-link   { display: block; color: inherit; cursor: pointer; }
 

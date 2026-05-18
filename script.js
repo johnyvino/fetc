@@ -10,6 +10,8 @@
     const validCats  = new Set(data.categories.map(c => c.id));
 
     const COPY_RESET_MS = 1500;
+    const INITIAL_CHUNK = 16;
+    const CHUNK_SIZE    = 24;
 
     const COPY_ICON = `
         <svg class="icon-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor"
@@ -17,6 +19,9 @@
             <rect x="5.5" y="5.5" width="9" height="9" rx="1.5"/>
             <path d="M11 2.5H3a1 1 0 0 0-1 1V11"/>
         </svg>`;
+
+    const IMG_SIZES =
+        '(max-width: 419px) 100vw, (max-width: 599px) 50vw, (max-width: 1024px) 50vw, 25vw';
 
     const escape = (s) => String(s)
         .replaceAll('&',  '&amp;')
@@ -30,8 +35,6 @@
         return validCats.has(h) ? h : 'all';
     };
 
-    // No two items of the same category appear within `window` positions,
-    // so a category never repeats within one row of the 4-col grid.
     function shuffleMixed(arr, window = 4) {
         const remaining = arr.slice();
         const out = [];
@@ -73,6 +76,7 @@
 
     const items = shuffleMixed(data.items);
     let activeCategory = readCategoryFromHash();
+    let gridBuilt = false;
 
     function renderFilters() {
         const all = [{ id: 'all', label: 'all' }, ...data.categories];
@@ -82,7 +86,7 @@
         }).join('');
     }
 
-    function renderCard(item) {
+    function renderCard(item, eager) {
         const brand = item.brand || '';
         const name  = item.name;
         const size  = item.size === 'large' ? 'large' : 'small';
@@ -96,9 +100,18 @@
             item.bleed  && 'data-bleed="true"',
         ].filter(Boolean).join(' ');
 
-        const imgTag = item.image?.trim()
-            ? `<img src="${escape(item.image)}" alt="${escape(item.image_alt || query)}"
-                   loading="lazy" onload="this.parentElement.classList.add('has-image')">`
+        const loadAttr = eager
+            ? 'loading="eager" fetchpriority="high" decoding="async"'
+            : 'loading="lazy" decoding="async"';
+
+        const src = item.image?.trim();
+        const webp = src?.replace(/\.png$/i, '.webp');
+        const imgTag = src
+            ? `<picture>
+                    <source type="image/webp" srcset="${escape(webp)}">
+                    <img src="${escape(src)}" alt="${escape(item.image_alt || query)}"
+                         width="800" height="800" sizes="${IMG_SIZES}" ${loadAttr}>
+               </picture>`
             : '';
 
         return `
@@ -125,14 +138,69 @@
         `;
     }
 
-    function renderGrid() {
-        const visible = activeCategory === 'all'
-            ? items
-            : items.filter(i => i.category === activeCategory);
-
-        countEl.textContent = `${visible.length} ${visible.length === 1 ? 'item' : 'items'}`;
-        grid.innerHTML = visible.map(renderCard).join('');
+    function cardMatchesFilter(category) {
+        return activeCategory === 'all' || category === activeCategory;
     }
+
+    function updateCount() {
+        const n = activeCategory === 'all'
+            ? items.length
+            : items.filter(i => i.category === activeCategory).length;
+        countEl.textContent = `${n} ${n === 1 ? 'item' : 'items'}`;
+    }
+
+    function applyFilter() {
+        if (!gridBuilt) return;
+        grid.querySelectorAll('.card').forEach(card => {
+            const show = cardMatchesFilter(card.dataset.category);
+            card.hidden = !show;
+        });
+        updateCount();
+    }
+
+    function appendCards(slice, startIndex) {
+        const html = slice.map((item, i) =>
+            renderCard(item, startIndex + i < INITIAL_CHUNK)
+        ).join('');
+        grid.insertAdjacentHTML('beforeend', html);
+    }
+
+    function buildGrid() {
+        if (gridBuilt) {
+            applyFilter();
+            return;
+        }
+
+        let index = 0;
+        const first = items.slice(0, INITIAL_CHUNK);
+        appendCards(first, 0);
+        index = first.length;
+        gridBuilt = true;
+        applyFilter();
+
+        const rest = items.slice(index);
+        if (!rest.length) return;
+
+        const schedule = window.requestIdleCallback
+            ? (cb) => requestIdleCallback(cb, { timeout: 1200 })
+            : (cb) => setTimeout(cb, 0);
+
+        function pump() {
+            const chunk = rest.splice(0, CHUNK_SIZE);
+            if (!chunk.length) return;
+            appendCards(chunk, index);
+            index += chunk.length;
+            applyFilter();
+            if (rest.length) schedule(pump);
+        }
+
+        schedule(pump);
+    }
+
+    grid.addEventListener('load', e => {
+        if (e.target.tagName !== 'IMG') return;
+        e.target.closest('.card-image')?.classList.add('has-image');
+    }, true);
 
     filterList.addEventListener('click', e => {
         const btn = e.target.closest('.filter-link');
@@ -145,7 +213,7 @@
             : '#' + next;
         history.replaceState(null, '', newUrl);
         renderFilters();
-        renderGrid();
+        applyFilter();
     });
 
     grid.addEventListener('click', e => {
@@ -172,11 +240,9 @@
     window.addEventListener('hashchange', () => {
         activeCategory = readCategoryFromHash();
         renderFilters();
-        renderGrid();
+        applyFilter();
     });
 
-    // Set SUBMIT_ENDPOINT to a Formspree/Netlify/Basin URL to POST directly;
-    // otherwise submissions open the user's mail client to SUBMIT_TO.
     const SUBMIT_TO       = 'submissions@johnyvino.com';
     const SUBMIT_ENDPOINT = '';
 
@@ -207,15 +273,15 @@
 
         submitForm.addEventListener('submit', async e => {
             e.preventDefault();
-            const data = new FormData(submitForm);
-            const fields = Object.fromEntries(data.entries());
+            const formData = new FormData(submitForm);
+            const fields = Object.fromEntries(formData.entries());
 
             if (SUBMIT_ENDPOINT) {
                 try {
                     const res = await fetch(SUBMIT_ENDPOINT, {
                         method: 'POST',
                         headers: { 'Accept': 'application/json' },
-                        body: data,
+                        body: formData,
                     });
                     if (res.ok) {
                         submitForm.reset();
@@ -250,5 +316,5 @@
     }
 
     renderFilters();
-    renderGrid();
+    buildGrid();
 })();
