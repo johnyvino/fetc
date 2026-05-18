@@ -30,8 +30,6 @@ BRIGHT_HIGH    = 248
 ALPHA_BBOX     = 50
 # Breathing room around the product after cropping (% of the long side).
 PAD_PCT        = 0.08
-# Max long edge for web delivery (2x retina on ~800px large cards).
-MAX_SIDE       = 1600
 
 
 def has_neutral_background(img):
@@ -95,16 +93,6 @@ def crop_and_square(img):
     return canvas
 
 
-def cap_dimensions(img, max_side=MAX_SIDE):
-    w, h = img.size
-    long_side = max(w, h)
-    if long_side <= max_side:
-        return img
-    scale = max_side / long_side
-    new_size = (max(1, int(w * scale)), max(1, int(h * scale)))
-    return img.resize(new_size, Image.Resampling.LANCZOS)
-
-
 def process_one(path):
     img = Image.open(path)
     if img.mode == "P":
@@ -112,7 +100,6 @@ def process_one(path):
     if has_neutral_background(img):
         img = background_to_alpha(img)
     img = crop_and_square(img)
-    img = cap_dimensions(img)
     base, _ = os.path.splitext(os.path.basename(path))
     out_path = os.path.join(DEST, base + ".png")
     img.save(out_path, "PNG", optimize=True)
