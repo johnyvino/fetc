@@ -393,6 +393,12 @@ html.is-authed       .admin-signout      { display: inline-flex; }
 }
 .admin-status.is-success { color: #1e8449; }
 .admin-status.is-error   { color: #c0392b; }
+.admin-status a {
+    color: inherit;
+    border-bottom: 1px solid currentColor;
+    transition: opacity 0.15s var(--ease);
+}
+.admin-status a:hover { opacity: 0.7; }
 
 /* === Mobile === */
 @media (max-width: 760px) {

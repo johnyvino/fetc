@@ -479,8 +479,15 @@
 
         publishBtn.disabled = true;
         try {
-            const commitUrl = await publish(item);
-            setStatus(`Published. View: ${commitUrl}  ·  Site updates in ~1 min.`, 'success');
+            const result = await publish(item);
+            statusEl.innerHTML =
+                `Published. ` +
+                `<a href="${esc(result.commit)}" target="_blank" rel="noopener">View commit ↗</a>` +
+                ` · Live at ` +
+                `<a href="${esc(result.site)}" target="_blank" rel="noopener">${esc(result.site)}</a>` +
+                ` in ~1 min.`;
+            statusEl.classList.remove('is-error');
+            statusEl.classList.add('is-success');
             resetForm();
         } catch (err) {
             if (err.isAuth) {
@@ -571,7 +578,10 @@
         // Track new id locally so subsequent publishes in this session dedup.
         existingIds.add(item.id);
 
-        return `${SITE_URL}#${item.category}`;
+        return {
+            commit: commit.html_url || `https://github.com/${REPO_OWNER}/${REPO_NAME}/commit/${commit.sha}`,
+            site:   `${SITE_URL}#${item.category}`,
+        };
     }
 
     async function uploadBlob(base64Content) {
