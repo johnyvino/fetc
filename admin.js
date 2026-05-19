@@ -58,6 +58,10 @@
     /** @type {{ blob800: Blob|null, blob1600: Blob|null, srcW: number, srcH: number }} */
     let encoded     = { blob800: null, blob1600: null, srcW: 0, srcH: 0 };
     let existingIds = new Set();
+    /** @type {Array<object>} Full item list for manage tab. */
+    let allItems    = [];
+    /** @type {string|null} If set, publish becomes update for this id. */
+    let editingId   = null;
 
     // -------- Helpers --------
     const fmtKB = (n) => `${Math.max(1, Math.round(n / 1024))} kB`;
@@ -218,13 +222,50 @@
     async function loadExistingItems() {
         const res = await gh(repoPath(`/contents/items.js?ref=${BRANCH}`));
         const text = decodeBase64Utf8(res.content);
-        // Parse out IDs without eval-ing the whole file.
         existingIds = new Set();
+        allItems = [];
+
+        // Parse out IDs
         const re = /\bid:\s*['"]([^'"]+)['"]/g;
         let m;
         while ((m = re.exec(text)) !== null) existingIds.add(m[1]);
+
+        // Parse full items by extracting each {...} object inside the items: [...] array.
+        // Lightweight parser — splits each line that starts with `{ id: ...` and pulls out fields.
+        const itemsBlock = text.match(/items:\s*\[([\s\S]*?)\n\s*\]/);
+        if (itemsBlock) {
+            const lines = itemsBlock[1].split('\n');
+            for (const line of lines) {
+                const item = parseItemLine(line);
+                if (item) allItems.push(item);
+            }
+        }
+
         updateSlugPreview();
+        renderManageList();
         return { text, sha: res.sha };
+    }
+
+    /**
+     * Extracts simple key/value pairs from a single-line `{ id: '...', brand: '...', ... }`.
+     * Handles both single and double-quoted strings; ignores nested braces (we don't have any).
+     */
+    function parseItemLine(line) {
+        const trimmed = line.trim().replace(/,\s*$/, '');
+        if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return null;
+        const inner = trimmed.slice(1, -1).trim();
+        const item = {};
+        // Match `key: 'value'`, `key: "value"`, `key: 123`, or `key: true`
+        const re = /(\w+)\s*:\s*(?:'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"|(\d+)|(true|false))/g;
+        let m;
+        while ((m = re.exec(inner)) !== null) {
+            const key = m[1];
+            if (m[2] !== undefined) item[key] = m[2].replace(/\\(.)/g, '$1');
+            else if (m[3] !== undefined) item[key] = m[3].replace(/\\(.)/g, '$1');
+            else if (m[4] !== undefined) item[key] = parseInt(m[4], 10);
+            else if (m[5] !== undefined) item[key] = m[5] === 'true';
+        }
+        return item.id ? item : null;
     }
 
     // -------- items.js editing --------
@@ -258,6 +299,37 @@
         }
         const line = `        ${serializeItem(item)},\n`;
         return itemsJsText.replace(marker, `$1${line}`);
+    }
+
+    function removeItemFromText(itemsJsText, id) {
+        // Strip the entire line containing `id: 'xxx'`.
+        const lines = itemsJsText.split('\n');
+        const needle = `id: '${id}'`;
+        const altNeedle = `id: "${id}"`;
+        const out = lines.filter(line => !line.includes(needle) && !line.includes(altNeedle));
+        if (out.length === lines.length) {
+            throw new Error(`Could not find item ${id} in items.js`);
+        }
+        return out.join('\n');
+    }
+
+    function replaceItemInText(itemsJsText, id, newItem) {
+        const lines = itemsJsText.split('\n');
+        const needle = `id: '${id}'`;
+        const altNeedle = `id: "${id}"`;
+        let replaced = false;
+        const out = lines.map(line => {
+            if (replaced) return line;
+            if (line.includes(needle) || line.includes(altNeedle)) {
+                replaced = true;
+                // Preserve indentation of original line.
+                const indent = line.match(/^\s*/)[0];
+                return `${indent}${serializeItem(newItem)},`;
+            }
+            return line;
+        });
+        if (!replaced) throw new Error(`Could not find item ${id} in items.js`);
+        return out.join('\n');
     }
 
     // -------- Image pipeline --------
@@ -445,10 +517,14 @@
     itemForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!token) { showGate(); return; }
-        if (!pickedFile || !encoded.blob800 || !encoded.blob1600) {
+
+        const isEditing = !!editingId;
+        // For new items, image is required. For edits, image is optional (keeps existing if not provided).
+        if (!isEditing && (!pickedFile || !encoded.blob800 || !encoded.blob1600)) {
             setStatus('Pick an image first.', 'error');
             return;
         }
+
         const data = new FormData(itemForm);
         const name = String(data.get('name') || '').trim();
         if (!name) {
@@ -457,11 +533,14 @@
         }
 
         const brand = String(data.get('brand') || '').trim();
-        const slug  = makeSlug(brand, name);
-        const link  = String(data.get('link') || '').trim()
+        // For edits, keep the existing slug. For new, generate one.
+        const slug = isEditing ? editingId : makeSlug(brand, name);
+        const link = String(data.get('link') || '').trim()
             || `https://www.google.com/search?q=${encodeURIComponent(`${brand} ${name}`.trim())}`;
         const display = String(data.get('display') || 'default');
 
+        // For edits, preserve added_on from original.
+        const original = isEditing ? allItems.find(it => it.id === editingId) : null;
         const item = {
             id:        slug,
             brand,
@@ -474,14 +553,16 @@
             popularity: Math.max(1, Math.min(100, parseInt(data.get('popularity'), 10) || 70)),
             framed:    display === 'framed',
             bleed:     display === 'bleed',
-            added_on:  todayISO(),
+            added_on:  original?.added_on || todayISO(),
         };
 
         publishBtn.disabled = true;
         try {
-            const result = await publish(item);
+            const result = isEditing
+                ? await updateItem(item, !!pickedFile)
+                : await publish(item);
             statusEl.innerHTML =
-                `Published. ` +
+                `${isEditing ? 'Updated' : 'Published'}. ` +
                 `<a href="${esc(result.commit)}" target="_blank" rel="noopener">View commit ↗</a>` +
                 ` · Live at ` +
                 `<a href="${esc(result.site)}" target="_blank" rel="noopener">${esc(result.site)}</a>` +
@@ -489,6 +570,7 @@
             statusEl.classList.remove('is-error');
             statusEl.classList.add('is-success');
             resetForm();
+            await loadExistingItems();
         } catch (err) {
             if (err.isAuth) {
                 localStorage.removeItem(TOKEN_KEY);
@@ -513,6 +595,10 @@
         dropEmpty.hidden   = false;
         stage.classList.remove('is-loaded');
         encodedInfo.hidden = true;
+        editingId = null;
+        if (publishBtn) publishBtn.textContent = 'Publish';
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        if (cancelBtn) cancelBtn.hidden = true;
         updateSlugPreview();
     }
 
@@ -591,4 +677,273 @@
         });
         return res.sha;
     }
+
+    /**
+     * Update an existing item. If `replaceImage` is true, also re-uploads the 3 image variants.
+     * Otherwise only updates items.js.
+     */
+    async function updateItem(item, replaceImage) {
+        setStatus('Reading branch…');
+        const ref = await gh(repoPath(`/git/refs/heads/${BRANCH}`));
+        const parentSha = ref.object.sha;
+        const parentCommit = await gh(repoPath(`/git/commits/${parentSha}`));
+        const baseTreeSha = parentCommit.tree.sha;
+
+        setStatus('Reading items.js…');
+        const itemsRes = await gh(repoPath(`/contents/items.js?ref=${BRANCH}`));
+        const oldText  = decodeBase64Utf8(itemsRes.content);
+        const newText  = replaceItemInText(oldText, item.id, item);
+
+        const treeEntries = [];
+
+        if (replaceImage) {
+            setStatus('Uploading image (PNG)…');
+            const pngSha = await uploadBlob(await blobToBase64(pickedFile));
+            setStatus('Uploading WebP variants…');
+            const [w800Sha, w1600Sha] = await Promise.all([
+                blobToBase64(encoded.blob800).then(uploadBlob),
+                blobToBase64(encoded.blob1600).then(uploadBlob),
+            ]);
+            treeEntries.push(
+                { path: `assets/items/${item.id}.png`,       mode: '100644', type: 'blob', sha: pngSha },
+                { path: `assets/items/${item.id}-800.webp`,  mode: '100644', type: 'blob', sha: w800Sha },
+                { path: `assets/items/${item.id}-1600.webp`, mode: '100644', type: 'blob', sha: w1600Sha },
+            );
+        }
+
+        setStatus('Updating items.js…');
+        const itemsSha = await uploadBlob(encodeUtf8Base64(newText));
+        treeEntries.push({ path: 'items.js', mode: '100644', type: 'blob', sha: itemsSha });
+
+        setStatus('Building tree…');
+        const tree = await gh(repoPath('/git/trees'), {
+            method: 'POST',
+            body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries }),
+        });
+
+        setStatus('Committing…');
+        const msg = `Update ${item.brand ? item.brand + ' ' : ''}${item.name}`.trim();
+        const commit = await gh(repoPath('/git/commits'), {
+            method: 'POST',
+            body: JSON.stringify({ message: msg, tree: tree.sha, parents: [parentSha] }),
+        });
+
+        setStatus('Advancing branch…');
+        await gh(repoPath(`/git/refs/heads/${BRANCH}`), {
+            method: 'PATCH',
+            body: JSON.stringify({ sha: commit.sha, force: false }),
+        });
+
+        return {
+            commit: commit.html_url || `https://github.com/${REPO_OWNER}/${REPO_NAME}/commit/${commit.sha}`,
+            site:   `${SITE_URL}#${item.category}`,
+        };
+    }
+
+    /**
+     * Delete an item. Removes the line from items.js and deletes the 3 image files
+     * (PNG + 2 WebP) in a single atomic commit.
+     */
+    async function deleteItemRemote(item) {
+        const ref = await gh(repoPath(`/git/refs/heads/${BRANCH}`));
+        const parentSha = ref.object.sha;
+        const parentCommit = await gh(repoPath(`/git/commits/${parentSha}`));
+        const baseTreeSha = parentCommit.tree.sha;
+
+        const itemsRes = await gh(repoPath(`/contents/items.js?ref=${BRANCH}`));
+        const oldText  = decodeBase64Utf8(itemsRes.content);
+        const newText  = removeItemFromText(oldText, item.id);
+        const itemsSha = await uploadBlob(encodeUtf8Base64(newText));
+
+        // sha: null in tree update = delete the file at that path.
+        const tree = await gh(repoPath('/git/trees'), {
+            method: 'POST',
+            body: JSON.stringify({
+                base_tree: baseTreeSha,
+                tree: [
+                    { path: `assets/items/${item.id}.png`,       mode: '100644', type: 'blob', sha: null },
+                    { path: `assets/items/${item.id}-800.webp`,  mode: '100644', type: 'blob', sha: null },
+                    { path: `assets/items/${item.id}-1600.webp`, mode: '100644', type: 'blob', sha: null },
+                    { path: 'items.js',                          mode: '100644', type: 'blob', sha: itemsSha },
+                ],
+            }),
+        });
+
+        const msg = `Delete ${item.brand ? item.brand + ' ' : ''}${item.name}`.trim();
+        const commit = await gh(repoPath('/git/commits'), {
+            method: 'POST',
+            body: JSON.stringify({ message: msg, tree: tree.sha, parents: [parentSha] }),
+        });
+
+        await gh(repoPath(`/git/refs/heads/${BRANCH}`), {
+            method: 'PATCH',
+            body: JSON.stringify({ sha: commit.sha, force: false }),
+        });
+
+        existingIds.delete(item.id);
+        return commit.html_url || `https://github.com/${REPO_OWNER}/${REPO_NAME}/commit/${commit.sha}`;
+    }
+
+    // -------- Tabs --------
+    const tabAddBtn    = $('tabAddBtn');
+    const tabManageBtn = $('tabManageBtn');
+    const addPanel     = $('addPanel');
+    const managePanel  = $('managePanel');
+    const manageList   = $('manageList');
+    const manageSearch = $('manageSearch');
+    const manageCount  = $('manageCount');
+    const manageStatus = $('manageStatus');
+    const cancelEditBtn = $('cancelEditBtn');
+
+    function switchTab(name) {
+        const isAdd = name === 'add';
+        tabAddBtn.classList.toggle('is-active', isAdd);
+        tabAddBtn.setAttribute('aria-selected', isAdd ? 'true' : 'false');
+        tabManageBtn.classList.toggle('is-active', !isAdd);
+        tabManageBtn.setAttribute('aria-selected', !isAdd ? 'true' : 'false');
+        addPanel.classList.toggle('is-active', isAdd);
+        addPanel.hidden = !isAdd;
+        managePanel.classList.toggle('is-active', !isAdd);
+        managePanel.hidden = isAdd;
+    }
+
+    tabAddBtn.addEventListener('click',    () => switchTab('add'));
+    tabManageBtn.addEventListener('click', () => switchTab('manage'));
+
+    // -------- Manage list rendering --------
+    function renderManageList() {
+        if (!manageList) return;
+        const q = (manageSearch.value || '').trim().toLowerCase();
+        const filtered = !q ? allItems : allItems.filter(it => {
+            const hay = `${it.name || ''} ${it.brand || ''} ${it.category || ''}`.toLowerCase();
+            return hay.includes(q);
+        });
+
+        manageCount.textContent = filtered.length === allItems.length
+            ? `${allItems.length} products`
+            : `${filtered.length} of ${allItems.length}`;
+
+        if (!filtered.length) {
+            manageList.innerHTML = `<div class="admin-manage-empty">${q ? 'No matches.' : 'No products yet.'}</div>`;
+            return;
+        }
+
+        manageList.innerHTML = filtered.map(it => {
+            const sub = [it.brand, it.category].filter(Boolean).join(' · ');
+            const thumb = it.image ? `<img class="admin-manage-thumb" src="${esc(it.image)}" alt="" loading="lazy">` : '';
+            return `
+                <div class="admin-manage-item">
+                    ${thumb}
+                    <div class="admin-manage-info">
+                        <div class="admin-manage-name">${esc(it.name || '')}</div>
+                        <div class="admin-manage-sub">${esc(sub)}</div>
+                    </div>
+                    <div class="admin-manage-actions">
+                        <button type="button" class="admin-icon-btn" data-edit="${esc(it.id)}">Edit</button>
+                        <button type="button" class="admin-icon-btn is-danger" data-delete="${esc(it.id)}">Delete</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    manageSearch?.addEventListener('input', renderManageList);
+
+    manageList?.addEventListener('click', async (e) => {
+        const editBtn   = e.target.closest('[data-edit]');
+        const deleteBtn = e.target.closest('[data-delete]');
+
+        if (editBtn) {
+            const id = editBtn.getAttribute('data-edit');
+            const item = allItems.find(it => it.id === id);
+            if (item) enterEditMode(item);
+            return;
+        }
+
+        if (deleteBtn) {
+            const id = deleteBtn.getAttribute('data-delete');
+            const item = allItems.find(it => it.id === id);
+            if (!item) return;
+            const label = `${item.brand ? item.brand + ' ' : ''}${item.name}`;
+            if (!confirm(`Delete "${label}"?\n\nThis removes the entry and the 3 image files in one commit.`)) return;
+
+            deleteBtn.disabled = true;
+            manageStatus.textContent = `Deleting ${label}…`;
+            manageStatus.classList.remove('is-success', 'is-error');
+            try {
+                const commitURL = await deleteItemRemote(item);
+                manageStatus.innerHTML = `Deleted "${esc(label)}". <a href="${esc(commitURL)}" target="_blank" rel="noopener">View commit ↗</a>`;
+                manageStatus.classList.add('is-success');
+                await loadExistingItems();
+            } catch (err) {
+                if (err.isAuth) {
+                    localStorage.removeItem(TOKEN_KEY);
+                    token = '';
+                    showGate('Token rejected. Paste a fresh one.');
+                } else {
+                    manageStatus.textContent = err.message;
+                    manageStatus.classList.add('is-error');
+                }
+                deleteBtn.disabled = false;
+            }
+        }
+    });
+
+    // -------- Edit mode --------
+    function enterEditMode(item) {
+        editingId = item.id;
+        switchTab('add');
+        // Populate form fields
+        nameInput.value  = item.name || '';
+        brandInput.value = item.brand || '';
+        $('linkInput').value     = item.link || '';
+        $('altInput').value      = item.image_alt || '';
+        $('popInput').value      = item.popularity ?? 70;
+        $('categoryInput').value = item.category || 'tech';
+
+        // Radios
+        const sizeVal = item.size === 'large' ? 'large' : 'small';
+        document.querySelector(`input[name="size"][value="${sizeVal}"]`).checked = true;
+        const display = item.bleed ? 'bleed' : (item.framed ? 'framed' : 'default');
+        document.querySelector(`input[name="display"][value="${display}"]`).checked = true;
+
+        // Update UI affordances
+        publishBtn.textContent = 'Update';
+        cancelEditBtn.hidden = false;
+        slugPreview.textContent = `editing ${item.id}`;
+        setStatus(`Editing "${item.name}". Replace the image to update it, or just edit fields and Update.`);
+
+        // Show existing image as a preview thumbnail (visual reference only).
+        if (item.image) {
+            previewCard.hidden = false;
+            previewCard.innerHTML = `
+                <div class="card ${item.size || 'small'}">
+                    <div class="card-image has-image">
+                        <picture>
+                            <img src="${esc(item.image)}" alt="${esc(item.image_alt || item.name || '')}">
+                        </picture>
+                    </div>
+                    <div class="card-meta">
+                        <div class="card-text-link">
+                            <span class="card-name">${esc(item.name || '')}</span>
+                            ${item.brand ? `<span class="card-brand">${esc(item.brand)}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            dropEmpty.hidden = true;
+            replaceBtn.hidden = false;
+            stage.classList.add('is-loaded');
+            stageHint.textContent = 'Showing current image. Replace to update, or leave as-is.';
+        }
+    }
+
+    function exitEditMode() {
+        editingId = null;
+        publishBtn.textContent = 'Publish';
+        cancelEditBtn.hidden = true;
+        resetForm();
+    }
+
+    cancelEditBtn?.addEventListener('click', exitEditMode);
 })();

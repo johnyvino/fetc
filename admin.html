@@ -54,9 +54,18 @@
         </div>
     </section>
 
-    <!-- Main form -->
+    <!-- Main app -->
     <section class="admin-main" id="adminMain">
-        <form id="itemForm" class="admin-grid" novalidate>
+        <nav class="admin-tabs" role="tablist" aria-label="Admin sections">
+            <button type="button" class="admin-tab is-active" role="tab" aria-selected="true"
+                    data-tab="add" id="tabAddBtn">Add new</button>
+            <button type="button" class="admin-tab" role="tab" aria-selected="false"
+                    data-tab="manage" id="tabManageBtn">Manage products</button>
+        </nav>
+
+        <!-- Add / Edit form -->
+        <div class="admin-tab-panel is-active" id="addPanel" role="tabpanel" aria-labelledby="tabAddBtn">
+            <form id="itemForm" class="admin-grid" novalidate>
             <!-- Left: live card preview -->
             <div class="admin-col admin-col-image">
                 <div class="admin-stage" id="stage" tabindex="0" role="button"
@@ -173,10 +182,25 @@
                     <button type="submit" class="admin-btn admin-btn-primary" id="publishBtn">
                         Publish
                     </button>
+                    <button type="button" class="admin-btn admin-btn-secondary" id="cancelEditBtn" hidden>
+                        Cancel edit
+                    </button>
                     <span class="admin-status" id="status"></span>
                 </div>
             </div>
         </form>
+        </div>
+
+        <!-- Manage existing products -->
+        <div class="admin-tab-panel" id="managePanel" role="tabpanel" aria-labelledby="tabManageBtn" hidden>
+            <div class="admin-manage-header">
+                <input type="search" id="manageSearch" class="admin-manage-search"
+                       placeholder="Search by name, brand, or category…" autocomplete="off">
+                <span class="admin-manage-count" id="manageCount"></span>
+            </div>
+            <div class="admin-manage-list" id="manageList"></div>
+            <p class="admin-status" id="manageStatus"></p>
+        </div>
     </section>
 
     <script src="admin.js" defer></script>
