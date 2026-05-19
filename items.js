@@ -12,6 +12,7 @@ window.CURATED_DATA = {
         { id: 'vehicles',   label: 'vehicles' }
     ],
     items: [
+        { id: 'lamy-studio-fountain-pen-black', brand: 'LAMY studio', name: 'Fountain Pen black', category: 'stationery', size: 'large', image: 'assets/items/lamy-studio-fountain-pen-black.png', link: 'https://www.lamy.com/en-us/p/lamy-studio-fountain-pen/50723086500174', popularity: 70, added_on: '2026-05-19' },
         { id: 'peak-design-everyday-sling', brand: 'Peak Design', name: 'Everyday Sling', category: 'tech', size: 'small', image: 'assets/items/peak-design-everyday-sling.png', link: 'https://www.peakdesign.com/products/everyday-sling?Size=3L&Color=Black', popularity: 70, added_on: '2026-05-19' },
         { id: 'wandrd-prvke-v4-21l-backpack', brand: 'WANDRD', name: 'PRVKE V4 21L Backpack', category: 'carry', size: 'small', image: 'assets/items/wandrd-prvke-v4-21l-backpack.png', link: 'https://www.wandrd.com/products/prvke?variant=41232563634256', popularity: 70, added_on: '2026-05-19' },
         { id: 'bruno-munari-design-as-art', brand: 'Bruno Munari', name: 'Design as Art', category: 'books', size: 'small', image: 'assets/items/bruno-munari-design-as-art.png', link: 'https://www.amazon.com/Design-As-Art-Bruno-Munari/dp/0141035811', popularity: 70, added_on: '2026-05-18' },
