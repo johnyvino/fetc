@@ -12,6 +12,7 @@ window.CURATED_DATA = {
         { id: 'vehicles',   label: 'vehicles' }
     ],
     items: [
+        { id: 'twsbi-swipe-blue-ice-extra-fine', brand: 'TWSBI', name: 'SWIPE (Blue Ice) - Extra Fine', category: 'stationery', size: 'small', image: 'assets/items/twsbi-swipe-blue-ice-extra-fine.png', link: 'https://deskbandit.com/products/twsbi-swipe-blue-ice-extra-fine', popularity: 70, added_on: '2026-05-18' },
         { id: 'meisterstuck-gold-coated-149-fountain-pen', brand: 'Meisterstück', name: 'Gold-Coated 149 Fountain Pen', category: 'stationery', size: 'small', image: 'assets/items/meisterstuck-gold-coated-149-fountain-pen.png', link: 'https://www.montblanc.com/en-us/meisterstuck-gold-coated-149-fountain-pen-%28m%29-MB132111VG.html', popularity: 70, added_on: '2026-05-18' },
         { id: 'braun-et66-calculator', brand: 'Braun', name: 'ET66 calculator', category: 'tech', size: 'small', image: 'assets/items/braun-et66-calculator.png', link: 'https://www.monohawaii.com/products/calculator', popularity: 70, added_on: '2026-05-18' },
         { id: 'apple-ipod', brand: 'Apple', name: 'iPod', category: 'tech', size: 'large', image: 'assets/items/apple-ipod.png', link: 'https://www.apple.com/', popularity: 70, added_on: '2026-05-18' },
