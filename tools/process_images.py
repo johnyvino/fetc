@@ -103,7 +103,9 @@ def process_one(path):
     base, _ = os.path.splitext(os.path.basename(path))
     out_path = os.path.join(DEST, base + ".png")
     img.save(out_path, "PNG", optimize=True)
-    if path != out_path and os.path.exists(path):
+    # Remove the input only if it's a *different* file from the output
+    # (e.g., legacy .jpg input that got rewritten as .png).
+    if os.path.exists(path) and not os.path.samefile(path, out_path):
         os.remove(path)
     return out_path
 

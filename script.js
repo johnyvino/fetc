@@ -82,7 +82,37 @@
         }).join('');
     }
 
-    function renderCard(item) {
+    const EAGER_COUNT = 4;
+
+    // Sizes hint mirrors the CSS grid breakpoints in style.css
+    // (1 col ≤419, 2 cols ≤1024, 4 cols >1024; large cards span 2 cols).
+    const SIZES_LARGE = '(max-width: 419px) 100vw, (max-width: 1024px) 100vw, 50vw';
+    const SIZES_SMALL = '(max-width: 419px) 100vw, (max-width: 1024px) 50vw, 25vw';
+
+    function buildPicture(item, query, index) {
+        const raw = item.image?.trim();
+        if (!raw) return '';
+        const src     = escape(raw);
+        const base    = src.replace(/\.png$/i, '');
+        const isLarge = item.size === 'large';
+        const sizes   = isLarge ? SIZES_LARGE : SIZES_SMALL;
+        const srcset  = isLarge
+            ? `${base}-800.webp 800w, ${base}-1600.webp 1600w`
+            : `${base}-800.webp 800w`;
+
+        let loadAttrs = 'decoding="async"';
+        if (index >= EAGER_COUNT) loadAttrs += ' loading="lazy"';
+        if (index === 0)          loadAttrs += ' fetchpriority="high"';
+
+        const alt = escape(item.image_alt || query);
+        return `
+            <picture>
+                <source type="image/webp" srcset="${srcset}" sizes="${sizes}">
+                <img src="${src}" alt="${alt}" ${loadAttrs}>
+            </picture>`;
+    }
+
+    function renderCard(item, index) {
         const brand = item.brand || '';
         const name  = item.name;
         const size  = item.size === 'large' ? 'large' : 'small';
@@ -96,10 +126,7 @@
             item.bleed  && 'data-bleed="true"',
         ].filter(Boolean).join(' ');
 
-        const imgTag = item.image?.trim()
-            ? `<img src="${escape(item.image)}" alt="${escape(item.image_alt || query)}"
-                   loading="lazy" onload="this.parentElement.classList.add('has-image')">`
-            : '';
+        const imgTag = buildPicture(item, query, index);
 
         return `
             <div class="card ${size}" data-name="${queryEsc}"
@@ -125,13 +152,29 @@
         `;
     }
 
+    function markLoaded(img) {
+        img.closest('.card-image')?.classList.add('has-image');
+    }
+
+    // Capture phase — `load` doesn't bubble.
+    grid.addEventListener('load', e => {
+        if (e.target.tagName === 'IMG') markLoaded(e.target);
+    }, true);
+
+    function markCachedImages() {
+        for (const img of grid.querySelectorAll('img')) {
+            if (img.complete && img.naturalWidth > 0) markLoaded(img);
+        }
+    }
+
     function renderGrid() {
         const visible = activeCategory === 'all'
             ? items
             : items.filter(i => i.category === activeCategory);
 
         countEl.textContent = `${visible.length} ${visible.length === 1 ? 'item' : 'items'}`;
-        grid.innerHTML = visible.map(renderCard).join('');
+        grid.innerHTML = visible.map((item, i) => renderCard(item, i)).join('');
+        markCachedImages();
     }
 
     filterList.addEventListener('click', e => {

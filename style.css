@@ -120,7 +120,10 @@ button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer
 .card.large  { grid-column: span 2; }
 .card-link   { display: block; color: inherit; cursor: pointer; }
 
-/* Card image — default: padded "product on grey" */
+/* Card image — non-bleed cards use the "constrained image" model:
+   the <img> itself is sized to a fixed percentage of the card-image box,
+   so every silhouette (square, tall, wide) ends up with the same visible
+   margin around it regardless of card aspect. Bleed cards bypass this. */
 .card-image {
     position: relative;
     background: var(--image-bg);
@@ -128,20 +131,22 @@ button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px;
+    padding: 0;
     overflow: hidden;
 }
 
 .card.large .card-image {
     aspect-ratio: 2 / 1;
-    padding: 48px 80px;
 }
 
+/* Let <picture> dissolve so its <img> is the flex item we can size. */
+.card-image picture { display: contents; }
+
 .card-image img {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
+    width: 70%;
+    height: 70%;
+    max-width: 70%;
+    max-height: 70%;
     object-fit: contain;
     opacity: 0;
     transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
@@ -162,11 +167,6 @@ button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer
 }
 
 /* Full-bleed: vehicles category by default, or any card opted in via data-bleed */
-.card[data-category="vehicles"] .card-image,
-.card[data-bleed="true"]        .card-image {
-    padding: 0;
-}
-
 .card[data-category="vehicles"] .card-image img,
 .card[data-bleed="true"]        .card-image img {
     width: 100%;
@@ -176,14 +176,12 @@ button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer
     object-fit: cover;
 }
 
-/* Per-card override that puts a bled card back into framed mode */
-.card[data-framed="true"] .card-image       { padding: 40px; }
-.card[data-framed="true"].large .card-image { padding: 48px 80px; }
+/* Framed override: forces the constrained-image (non-bleed) look back on. */
 .card[data-framed="true"] .card-image img {
-    width: auto;
-    height: auto;
-    max-width: 100%;
-    max-height: 100%;
+    width: 70%;
+    height: 70%;
+    max-width: 70%;
+    max-height: 70%;
     object-fit: contain;
 }
 
@@ -410,21 +408,53 @@ button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer
 
     .site-header   { padding: 40px 16px 32px; }
     .site-title    { font-size: 40px; }
-    .filter-bar    { padding: 12px 16px; gap: 12px; flex-wrap: wrap; }
-    .filter-list   { gap: 16px; }
-    .filter-link,
-    .product-count { font-size: 12px; }
+
+    /* Filter bar: horizontal scroll of pill-shaped tabs.
+       The category list can be long on mobile, so we drop the wrap-and-center
+       layout and let the user swipe. Active pill is filled for tap feedback. */
+    .filter-bar {
+        padding: 0;
+        gap: 0;
+    }
+    .filter-list {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+        gap: 8px;
+        padding: 12px 16px;
+        scrollbar-width: none;            /* Firefox */
+        -webkit-overflow-scrolling: touch;
+    }
+    .filter-list::-webkit-scrollbar { display: none; }   /* WebKit */
+
+    .filter-link {
+        flex-shrink: 0;
+        padding: 6px 14px;
+        font-size: 13px;
+        border: 1px solid var(--hairline);
+        border-radius: 999px;
+    }
+    .filter-link.active {
+        color: var(--bg);
+        background: var(--ink);
+        border-color: var(--ink);
+    }
+    .product-count { display: none; }     /* hide to make room for the scroll row */
+
     .grid          { padding: 12px 16px 48px; }
-    .card-image    { padding: 24px; }
-    .card.large .card-image { padding: 28px 40px; }
     .card-name,
     .card-brand    { font-size: 12px; }
 }
 
 @media (max-width: 419px) {
-    .grid                   { grid-template-columns: 1fr; }
-    .card.large             { grid-column: span 1; }
-    .card.large .card-image { aspect-ratio: 1 / 1; padding: 24px; }
+    /* Stay at 2 columns even on the smallest phones — but force non-bleed
+       large cards to 1:1 so a span-2 large card isn't a wide short strip. */
+    .card.large .card-image { aspect-ratio: 1 / 1; }
+
+    .card.large[data-category="vehicles"] .card-image,
+    .card.large[data-bleed="true"]        .card-image { aspect-ratio: 2 / 1; }
+
+    .card.large[data-framed="true"] .card-image { aspect-ratio: 1 / 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

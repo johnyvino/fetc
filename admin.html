@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Admin · Well Made</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+
+    <!-- Decide which section to show before first paint, so the auth gate
+         doesn't flash for already-signed-in users. -->
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('wellmade.adminToken')) {
+                    document.documentElement.classList.add('is-authed');
+                }
+            } catch (e) {}
+        })();
+    </script>
+</head>
+<body class="admin-body">
+    <header class="admin-header">
+        <a href="/" class="admin-back">← Back to site</a>
+        <h1 class="admin-title">Admin</h1>
+        <button type="button" class="admin-signout" id="signOutBtn">Sign out</button>
+    </header>
+
+    <!-- Auth gate -->
+    <section class="admin-gate" id="authGate">
+        <div class="admin-card">
+            <h2>Sign in</h2>
+            <p class="admin-help">
+                Paste a GitHub fine-grained personal access token scoped to
+                <code>johnyvino/fetc</code> with <code>Contents: Read and write</code>.
+                Stored only in this browser.
+            </p>
+            <p class="admin-help admin-help-muted">
+                <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">
+                    Create a token →
+                </a>
+            </p>
+            <form id="authForm" class="admin-form admin-form-narrow">
+                <label>
+                    <span>Token</span>
+                    <input type="password" id="tokenInput" autocomplete="off" required
+                           placeholder="github_pat_…">
+                </label>
+                <button type="submit" class="admin-btn admin-btn-primary">Save token</button>
+                <p class="admin-error" id="authError" hidden></p>
+            </form>
+        </div>
+    </section>
+
+    <!-- Main form -->
+    <section class="admin-main" id="adminMain">
+        <form id="itemForm" class="admin-grid" novalidate>
+            <!-- Left: live card preview -->
+            <div class="admin-col admin-col-image">
+                <div class="admin-stage" id="stage" tabindex="0" role="button"
+                     aria-label="Drop or click to choose a PNG image">
+                    <input type="file" id="fileInput" accept="image/png" hidden>
+                    <div class="admin-drop-empty" id="dropEmpty">
+                        <strong>Drop a PNG here</strong>
+                        <span>or click to choose</span>
+                        <span class="admin-help-muted">transparent background recommended</span>
+                    </div>
+                    <!-- Filled by JS with the real .card structure once an image is picked. -->
+                    <div class="admin-preview-card" id="previewCard" hidden></div>
+                </div>
+                <div class="admin-stage-meta">
+                    <button type="button" class="admin-replace" id="replaceBtn" hidden>
+                        Replace image
+                    </button>
+                    <span class="admin-stage-hint" id="stageHint">
+                        Live preview — what publishes is what you see.
+                    </span>
+                </div>
+                <div class="admin-encoded" id="encodedInfo" hidden>
+                    <div><span>Source</span><strong id="srcInfo">—</strong></div>
+                    <div><span>-800.webp</span><strong id="info800">—</strong></div>
+                    <div><span>-1600.webp</span><strong id="info1600">—</strong></div>
+                </div>
+            </div>
+
+            <!-- Right: fields -->
+            <div class="admin-col admin-col-fields">
+                <div class="admin-row">
+                    <label class="admin-grow">
+                        <span>Name *</span>
+                        <input type="text" name="name" id="nameInput" required autocomplete="off">
+                    </label>
+                </div>
+
+                <div class="admin-row">
+                    <label class="admin-grow">
+                        <span>Brand</span>
+                        <input type="text" name="brand" id="brandInput" autocomplete="off">
+                    </label>
+                    <label>
+                        <span>Category *</span>
+                        <select name="category" id="categoryInput" required>
+                            <option value="tech">tech</option>
+                            <option value="audio">audio</option>
+                            <option value="watches">watches</option>
+                            <option value="tools">tools</option>
+                            <option value="stationery">stationery</option>
+                            <option value="furniture">furniture</option>
+                            <option value="carry">carry</option>
+                            <option value="apparel">apparel</option>
+                            <option value="books">books</option>
+                            <option value="vehicles">vehicles</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="admin-row">
+                    <label class="admin-grow">
+                        <span>Product link</span>
+                        <input type="url" name="link" id="linkInput" placeholder="https://" autocomplete="off">
+                    </label>
+                </div>
+
+                <fieldset class="admin-pillset">
+                    <legend>Card size</legend>
+                    <label class="admin-pill">
+                        <input type="radio" name="size" value="small" checked>
+                        <span>Small (1 column)</span>
+                    </label>
+                    <label class="admin-pill">
+                        <input type="radio" name="size" value="large">
+                        <span>Large (2 columns)</span>
+                    </label>
+                </fieldset>
+
+                <fieldset class="admin-pillset">
+                    <legend>Display</legend>
+                    <label class="admin-pill">
+                        <input type="radio" name="display" value="default" checked>
+                        <span>Default</span>
+                    </label>
+                    <label class="admin-pill">
+                        <input type="radio" name="display" value="framed">
+                        <span>Framed (padded grey background)</span>
+                    </label>
+                    <label class="admin-pill">
+                        <input type="radio" name="display" value="bleed">
+                        <span>Full-bleed (cover)</span>
+                    </label>
+                </fieldset>
+
+                <div class="admin-row">
+                    <label class="admin-grow">
+                        <span>Image alt text</span>
+                        <input type="text" name="image_alt" id="altInput" autocomplete="off"
+                               placeholder="auto: brand + name">
+                    </label>
+                    <label class="admin-pop">
+                        <span>Popularity</span>
+                        <input type="number" name="popularity" id="popInput"
+                               min="1" max="100" value="70">
+                    </label>
+                </div>
+
+                <div class="admin-slug">
+                    <span>Saves to</span>
+                    <code id="slugPreview">assets/items/—.png</code>
+                </div>
+
+                <div class="admin-actions">
+                    <button type="submit" class="admin-btn admin-btn-primary" id="publishBtn">
+                        Publish
+                    </button>
+                    <span class="admin-status" id="status"></span>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <script src="admin.js" defer></script>
+</body>
+</html>
