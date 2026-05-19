@@ -52,17 +52,6 @@ button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer
     letter-spacing: 0.02em;
 }
 
-.site-quote {
-    margin-top: 16px;
-    max-width: 540px;
-    text-align: center;
-    font-size: 17px;
-    font-style: italic;
-    color: var(--muted);
-    line-height: 1.5;
-    text-wrap: balance;
-}
-
 .wordmark-link,
 .site-footer a {
     color: inherit;
