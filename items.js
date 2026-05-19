@@ -12,6 +12,7 @@ window.CURATED_DATA = {
         { id: 'vehicles',   label: 'vehicles' }
     ],
     items: [
+        { id: 'meisterstuck-gold-coated-149-fountain-pen', brand: 'Meisterstück', name: 'Gold-Coated 149 Fountain Pen', category: 'stationery', size: 'small', image: 'assets/items/meisterstuck-gold-coated-149-fountain-pen.png', link: 'https://www.montblanc.com/en-us/meisterstuck-gold-coated-149-fountain-pen-%28m%29-MB132111VG.html', popularity: 70, added_on: '2026-05-18' },
         { id: 'braun-et66-calculator', brand: 'Braun', name: 'ET66 calculator', category: 'tech', size: 'small', image: 'assets/items/braun-et66-calculator.png', link: 'https://www.monohawaii.com/products/calculator', popularity: 70, added_on: '2026-05-18' },
         { id: 'apple-ipod', brand: 'Apple', name: 'iPod', category: 'tech', size: 'large', image: 'assets/items/apple-ipod.png', link: 'https://www.apple.com/', popularity: 70, added_on: '2026-05-18' },
         { id: 'casio-ae1200wh',            brand: 'Casio',             name: 'AE-1200WH Royale',                  category: 'watches',   size: 'small', image: 'assets/items/casio-ae1200wh.png',            link: 'https://www.casio.com/us/watches/casio/product.AE-1200WH-1AV/',                                             popularity:  88, added_on: '2026-08-30' },
