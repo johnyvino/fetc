@@ -12,6 +12,7 @@ window.CURATED_DATA = {
         { id: 'vehicles',   label: 'vehicles' }
     ],
     items: [
+        { id: 'braun-et66-calculator', brand: 'Braun', name: 'ET66 calculator', category: 'tech', size: 'small', image: 'assets/items/braun-et66-calculator.png', link: 'https://www.monohawaii.com/products/calculator', popularity: 70, added_on: '2026-05-18' },
         { id: 'apple-ipod', brand: 'Apple', name: 'iPod', category: 'tech', size: 'large', image: 'assets/items/apple-ipod.png', link: 'https://www.apple.com/', popularity: 70, added_on: '2026-05-18' },
         { id: 'casio-ae1200wh',            brand: 'Casio',             name: 'AE-1200WH Royale',                  category: 'watches',   size: 'small', image: 'assets/items/casio-ae1200wh.png',            link: 'https://www.casio.com/us/watches/casio/product.AE-1200WH-1AV/',                                             popularity:  88, added_on: '2026-08-30' },
         { id: 'milwaukee-m18-fuel', brand: 'Milwaukee', name: 'M18 FUEL Combo Kit', category: 'tools', size: 'small', image: 'assets/items/milwaukee-m18-fuel.png', link: 'https://www.homedepot.com/p/Milwaukee-M18-FUEL-18V-Lithium-Ion-Brushless-Cordless-Hammer-Drill-and-Impact-Driver-Combo-Kit-2-Tool-with-2-Batteries-3697-22/320326787', popularity: 80, added_on: '2026-08-30' },
