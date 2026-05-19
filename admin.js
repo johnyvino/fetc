@@ -62,6 +62,15 @@
     // -------- Helpers --------
     const fmtKB = (n) => `${Math.max(1, Math.round(n / 1024))} kB`;
 
+    // HTML-escape helper. Named distinctly so it never falls through to the
+    // deprecated global `escape()` which URL-encodes instead of HTML-escaping.
+    const esc = (s) => String(s)
+        .replaceAll('&',  '&amp;')
+        .replaceAll('<',  '&lt;')
+        .replaceAll('>',  '&gt;')
+        .replaceAll('"',  '&quot;')
+        .replaceAll("'",  '&#39;');
+
     function slugify(text) {
         return String(text)
             .toLowerCase()
@@ -93,28 +102,61 @@
     }
 
     // -------- Auth --------
-    function showGate() {
+    function showGate(message) {
         document.documentElement.classList.remove('is-authed');
+        if (message) {
+            authError.textContent = message;
+            authError.hidden = false;
+        } else {
+            authError.hidden = true;
+        }
     }
 
     function showApp() {
         document.documentElement.classList.add('is-authed');
         loadExistingItems().catch(err => {
-            setStatus(`Could not load items.js: ${err.message}`, 'error');
+            if (err.isAuth) {
+                // Saved token is bad/expired — wipe it, kick back to gate.
+                localStorage.removeItem(TOKEN_KEY);
+                token = '';
+                showGate('Saved token was rejected by GitHub. Paste a fresh one.');
+            } else {
+                setStatus(`Could not load items.js: ${err.message}`, 'error');
+            }
         });
     }
 
     if (token) showApp(); else showGate();
 
-    authForm.addEventListener('submit', (e) => {
+    authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const value = tokenInput.value.trim();
         if (!value) return;
-        token = value;
-        localStorage.setItem(TOKEN_KEY, token);
+
+        const submitBtn = authForm.querySelector('button[type="submit"]');
+        const submitLabel = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Verifying…';
         authError.hidden = true;
-        tokenInput.value = '';
-        showApp();
+
+        // Try the token before persisting so we don't store something broken.
+        const previousToken = token;
+        token = value;
+        try {
+            await gh(repoPath(''));
+            localStorage.setItem(TOKEN_KEY, token);
+            tokenInput.value = '';
+            showApp();
+        } catch (err) {
+            token = previousToken;
+            authError.hidden = false;
+            authError.textContent = err.isAuth
+                ? 'GitHub rejected this token. Confirm it’s a fine-grained PAT for johnyvino/fetc with Contents: Read and write, and that it hasn’t expired.'
+                : `Verification failed: ${err.message}`;
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = submitLabel;
+        }
     });
 
     signOutBtn.addEventListener('click', () => {
@@ -364,19 +406,19 @@
 
         previewCard.innerHTML = `
             <div class="card ${size}"
-                 data-name="${escape(`${brand} ${name}`.trim())}"
-                 data-category="${escape(category)}"
+                 data-name="${esc(`${brand} ${name}`.trim())}"
+                 data-category="${esc(category)}"
                  ${flagAttrs.join(' ')}>
                 <div class="card-image has-image">
-                    <span class="card-image-fallback">${escape(fallback)}</span>
+                    <span class="card-image-fallback">${esc(fallback)}</span>
                     <picture>
-                        <img src="${escape(previewURL)}" alt="${escape(altText)}">
+                        <img src="${previewURL}" alt="${esc(altText)}">
                     </picture>
                 </div>
                 <div class="card-meta">
                     <div class="card-text-link">
-                        <span class="card-name">${escape(name) || '<em style="opacity:.4">Name…</em>'}</span>
-                        ${brand ? `<span class="card-brand">${escape(brand)}</span>` : ''}
+                        <span class="card-name">${esc(name) || '<em style="opacity:.4">Name…</em>'}</span>
+                        ${brand ? `<span class="card-brand">${esc(brand)}</span>` : ''}
                     </div>
                 </div>
             </div>
@@ -442,8 +484,9 @@
             resetForm();
         } catch (err) {
             if (err.isAuth) {
-                setStatus('Auth failed. Re-enter your token.', 'error');
-                showGate();
+                localStorage.removeItem(TOKEN_KEY);
+                token = '';
+                showGate('Token rejected. Paste a fresh one — your draft is preserved.');
             } else {
                 setStatus(err.message, 'error');
             }
