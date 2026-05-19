@@ -12,6 +12,7 @@ window.CURATED_DATA = {
         { id: 'vehicles',   label: 'vehicles' }
     ],
     items: [
+        { id: 'kef-mu7', brand: 'KEF', name: 'Mu7', category: 'audio', size: 'small', image: 'assets/items/kef-mu7.png', link: 'https://us.kef.com/products/mu7?variant=43230523228407', popularity: 70, added_on: '2026-05-19' },
         { id: 'sternglas-hamburg', brand: 'Sternglas', name: 'Hamburg', category: 'watches', size: 'small', image: 'assets/items/sternglas-hamburg.png', link: 'https://www.sternglas.com/products/hamburg-silver?variant=45045161492746', popularity: 70, added_on: '2026-05-19' },
         { id: 'casio-vintage-a130we-7a', brand: 'CASIO VINTAGE', name: 'A130WE-7A', category: 'watches', size: 'small', image: 'assets/items/casio-vintage-a130we-7a.png', link: 'https://www.casio.com/us/watches/casio/product.A130WE-7A/', popularity: 70, added_on: '2026-05-19' },
         { id: 'goulet-pens-pilot-custom-823-fountain-pen', brand: 'Goulet Pens', name: 'Pilot Custom 823 Fountain Pen', category: 'stationery', size: 'small', image: 'assets/items/goulet-pens-pilot-custom-823-fountain-pen.png', link: 'https://www.gouletpens.com/products/pilot-custom-823-fountain-pen-clear', popularity: 70, added_on: '2026-05-19' },
