@@ -12,6 +12,7 @@ window.CURATED_DATA = {
         { id: 'vehicles',   label: 'vehicles' }
     ],
     items: [
+        { id: 'sternglas-hamburg', brand: 'Sternglas', name: 'Hamburg', category: 'watches', size: 'small', image: 'assets/items/sternglas-hamburg.png', link: 'https://www.sternglas.com/products/hamburg-silver?variant=45045161492746', popularity: 70, added_on: '2026-05-19' },
         { id: 'casio-vintage-a130we-7a', brand: 'CASIO VINTAGE', name: 'A130WE-7A', category: 'watches', size: 'small', image: 'assets/items/casio-vintage-a130we-7a.png', link: 'https://www.casio.com/us/watches/casio/product.A130WE-7A/', popularity: 70, added_on: '2026-05-19' },
         { id: 'goulet-pens-pilot-custom-823-fountain-pen', brand: 'Goulet Pens', name: 'Pilot Custom 823 Fountain Pen', category: 'stationery', size: 'small', image: 'assets/items/goulet-pens-pilot-custom-823-fountain-pen.png', link: 'https://www.gouletpens.com/products/pilot-custom-823-fountain-pen-clear', popularity: 70, added_on: '2026-05-19' },
         { id: 'lamy-studio-fountain-pen-black', brand: 'LAMY studio', name: 'Fountain Pen black', category: 'stationery', size: 'large', image: 'assets/items/lamy-studio-fountain-pen-black.png', link: 'https://www.lamy.com/en-us/p/lamy-studio-fountain-pen/50723086500174', popularity: 70, added_on: '2026-05-19' },
