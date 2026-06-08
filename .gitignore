@@ -1,0 +1,23 @@
+# Logs
+*.log
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local env / secrets
+.env
+.env.local
+.env.*.local
+*.local
+

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /tools/
+Disallow: /admin.html
+
+Sitemap: https://wellmade.johnyvino.com/sitemap.xml
